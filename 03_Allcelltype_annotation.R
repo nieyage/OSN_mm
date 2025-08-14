@@ -310,14 +310,6 @@ set.seed(1234)
 setwd("/data/R02/nieyg/project/OSN_mm/joint")
 OSN_mm<-readRDS("./02_All_celltype/WNN_OSN_integrated_all_celltype.rds")
 DefaultAssay(OSN_mm) <- 'peaks_All_cluster'
-
-# link peaks to genes
-OSN_mm <- LinkPeaks(
-  object = OSN_mm,
-  peak.assay = "peaks_All_cluster",
-  expression.assay = "RNA",
-  genes.use = markers
-)
 ######Visulize track and RNA exp######
 idents.plot <- Idents(OSN_mm)
 markers <- c("Syt1", #神经元
@@ -334,8 +326,15 @@ markers <- c("Syt1", #神经元
               "S100a9","S100a8",#中性粒细胞 Neutrophils
               "Lyz2","S100a4", #Monocytes
               "Hbb-bs","Hbb-bt",#红细胞,Erythrocytes
-              "Mcpt8","Ccl4","Ptprc","Itga2","Fcer1a", #Basophils
+              "Mcpt8","Ccl4","Ptprc","Itga2", #Basophils
               "C1qa","Ms4a7"#Macrophages
+)
+# link peaks to genes
+OSN_mm <- LinkPeaks(
+  object = OSN_mm,
+  peak.assay = "peaks_All_cluster",
+  expression.assay = "RNA",
+  genes.use = markers
 )
 
 pdf("./02_All_celltype/All_Marker_gene-peaktrack_celltype.pdf",height=8,width=8)
@@ -354,4 +353,21 @@ for(i in markers){
 print(p1)}
 dev.off()
 
-
+markers <- c(
+              "C1qa","Ms4a7"#Macrophages
+)
+pdf("./02_All_celltype/All_Marker_gene-peaktrack_celltype2.pdf",height=8,width=8)
+for(i in markers){
+  print(i)
+  p1 <- CoveragePlot(
+  object = OSN_mm,
+  region = i,
+  features = i,
+  expression.assay = "RNA",
+  idents = idents.plot,
+  extend.upstream = 500,
+  annotation=TRUE,
+  extend.downstream = 500
+)
+print(p1)}
+dev.off()

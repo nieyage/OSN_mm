@@ -150,6 +150,7 @@ for (i in seq_len(length(objList))) {
    }
 
 
+
    # filter out low quality cells
 # To remove doublets,select different cutoff#####
   objList2<-list()
@@ -172,6 +173,85 @@ for (i in 1:2){
       nucleosome_signal < 2 
       )
 }
+
+
+## Load the dataset
+samples <- c("Negative","Positive")
+
+## Quality control
+for ( i in 1:length(objList)){
+  objList[[i]][["percent.mt"]] = PercentageFeatureSet(objList[[i]],pattern="^mt-")
+  pdf(str_c(out_dir,samples[i],"_qc_plot.pdf"),width=9)
+  p1=VlnPlot(objList[[i]],features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+  p2=ggplot(data=objList[[i]][["nFeature_RNA"]],aes(x=nFeature_RNA))+geom_density()
+  p3=ggplot(data=objList[[i]][["nCount_RNA"]],aes(x=nCount_RNA))+geom_density()
+  p4=ggplot(data=objList[[i]][["percent.mt"]],aes(x=percent.mt))+geom_density()
+  p5=FeatureScatter(objList[[i]], feature1 = "nCount_RNA", feature2 = "percent.mt")
+  p6=FeatureScatter(objList[[i]], feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+  print(p1)
+  print(p2)
+  print(p3)
+  print(p4)
+  print(p5)
+  print(p6)
+  dev.off()
+}
+# figure S1b
+df <- rbind(objList[[1]]@meta.data, objList[[2]]@meta.data)
+df$orig.ident <- factor(df$orig.ident,levels=samples)
+library(colorspace)
+newpalette <- c("#F39B7FFF",darken("#F39B7FFF",0.2),"#E64B35FF",darken("#E64B35FF",0.2))
+pdf(out_dir,"combined_OE_scRNA_qc_violin.pdf",height=10)
+p1 <- ggplot(data=df,aes(x=orig.ident,y=nCount_RNA,fill=orig.ident))+
+  geom_violin(trim=FALSE)+
+  geom_boxplot(width=0.1, fill="white",outlier.size=0.8)+
+  theme_classic()+
+  scale_fill_manual(values=newpalette) +
+  coord_cartesian(ylim=c(0,50000)) + 
+  labs(y="# UMIs") + 
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_text(size=rel(2),vjust =2),
+        axis.text.y = element_text(color="black",size=rel(1.8)), 
+        axis.text.x = element_blank(),
+        axis.line = element_line(colour="black",size = 1),
+        axis.ticks = element_line(),
+        plot.margin=unit(c(0, 0.5, 0.5, 0.5), "cm"),
+        legend.position = " none")
+p2 <- ggplot(data=df,aes(x=orig.ident,y=nFeature_RNA,fill=orig.ident))+
+  geom_violin(trim=FALSE,)+
+  geom_boxplot(width=0.1, fill="white",outlier.size=0.8)+
+  theme_classic()+
+  scale_fill_manual(values=newpalette) +
+  labs(y="# genes") + 
+  geom_hline(yintercept=c(400,5000),linetype="longdash")+
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_text(size=rel(2),vjust =2),
+        axis.text.y = element_text(color="black",size=rel(1.8)), 
+        axis.text.x = element_blank(),
+        axis.line = element_line(colour="black",size = 1),
+        axis.ticks = element_line(),
+        plot.margin=unit(c(0, 0.5, 0.5, 0.5), "cm"),
+        legend.position = " none")
+p3 <- ggplot(data=df,aes(x=orig.ident,y=percent.mt,fill=orig.ident))+
+  geom_violin(trim=FALSE,)+
+  geom_boxplot(width=0.1, fill="white",outlier.size=0.8)+
+  theme_classic()+
+  scale_fill_manual(values=newpalette) +
+  labs(y="MT reads\npercentage") + 
+  geom_hline(yintercept=10,linetype="longdash")+
+  coord_cartesian(ylim=c(0,20))+
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_text(size=rel(2),vjust =2),
+        axis.text.y = element_text(color="black",size=rel(1.8)), 
+        axis.text.x = element_text(color="black",size=rel(1.8),angle =45,hjust=1),
+        axis.line = element_line(colour="black",size = 1),
+        axis.ticks = element_line(),
+        plot.margin=unit(c(0, 0.5, 0.5, 0.5), "cm"),
+        legend.position = " none")
+p1 / p2 / p3 
+dev.off()
+
+
 
 
 
@@ -360,10 +440,6 @@ p1 | p2 | p3
 dev.off()
 
 saveRDS(OSN_mm,"./02_All_celltype/WNN_OSN_mm_integrated_all_celltype.rds")
-
-
-
-
 
 
 
