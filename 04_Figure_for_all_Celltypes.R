@@ -56,6 +56,79 @@ p3 <- ggplot(data=cell_type_df,aes(x=x,y=cell_type))+
 p1 + p2 + p3 + plot_layout(widths=c(8,1.5,0.2))
 dev.off()
 
+
+
+library(RColorBrewer)
+celltype_palette <- c(brewer.pal(9,"YlGn")[c(9,5,2)],
+                      brewer.pal(12,"Set3")[8],
+                      brewer.pal(9,"RdPu")[c(2,4,5,7)],
+                      brewer.pal(9,"Blues")[c(2,4,6,8,9)],
+                      brewer.pal(9,"BuPu")[5],brewer.pal(9,"BuPu")[7])
+
+
+# ATAC UMAP with annotation and cellnumber
+cell_number_df <- OSN_mm@meta.data[,"cell_type",drop=FALSE] %>%
+  dplyr::group_by(cell_type) %>%
+  dplyr::summarise(counts=n())
+
+cell_number_df$log10_counts <- log10(cell_number_df$counts)
+cell_number_df$cell_type <- factor(cell_number_df$cell_type,levels=rev(levels(OSN_mm)))
+cell_type_df <- cell_number_df[,"cell_type",drop=FALSE]
+cell_type_df$x <- 1
+pdf("./02_All_celltype/OSN_ATAC_UMAP_with_cell_types.pdf",width=9.5)
+p1 <- DimPlot(OSN_mm, reduction = "umap.atac",label=TRUE,cols=celltype_palette,repel=TRUE,label.size=5)+
+  labs(title="ATACUMAP")+
+  #geom_segment(aes(x = -14.641, y = -16.31245, xend = -12.2, yend = -16.31245),arrow = arrow(length = unit(0.3, "cm")))+
+  #geom_segment(aes(x = -14.641, y = -16.31245, xend = -14.641, yend = -13.31245),arrow = arrow(length = unit(0.3, "cm")))+
+  #annotate(geom = "text", x = -13.5, y = -17, label = "UMAP_1", color = "black") +
+  #annotate(geom = "text", x = -15.2, y = -15, label = "UMAP_2", color = "black",angle = 90) +
+  theme(plot.title = element_text(hjust = 0.5,size=rel(1.5),face="bold"),panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background=element_rect(fill='transparent', color='black',linetype="solid",size=1.5),axis.ticks=element_blank(),axis.text=element_blank(),axis.title=element_text(size=rel(1)),legend.position="none",plot.margin=unit(c(0.2, 0, 0.2, 0.3), "cm"))
+p2 <- ggplot(data=cell_number_df,aes(x=log10_counts,y=cell_type,fill=cell_type))+
+  geom_bar(stat = "identity",width=0.8)+
+  labs(x="Log10 (# cells)")+
+  #scale_x_continuous(limits=c(0,11100),breaks = c(1000,11000))+
+  #scale_y_discrete(position = "right")+
+  scale_fill_manual(values=rev(celltype_palette))+
+  theme(plot.title = element_text(hjust = 0.5,size=rel(1.5),face="bold"),panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background=element_rect(fill='transparent', color='black',linetype="solid",size=1.5),axis.ticks.y=element_blank(),axis.text.y=element_blank(),axis.title.y=element_blank(),legend.position="none",plot.margin=unit(c(0.2, 0, 0.2, 0), "cm"),axis.text.x=element_text(size=rel(1),color="black"),axis.title.x=element_text(size=rel(1)))
+p3 <- ggplot(data=cell_type_df,aes(x=x,y=cell_type))+
+  geom_tile(aes(fill=cell_type),color="black")+
+  scale_y_discrete(position = "right",expand=c(0,0))+
+  scale_fill_manual(values=rev(celltype_palette))+
+  theme(plot.title = element_text(hjust = 0.5,size=rel(1.5),face="bold"),panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background=element_rect(fill='transparent', color='black',linetype="solid",size=1.5),axis.ticks.x=element_blank(),axis.text.x=element_blank(),axis.title.x=element_blank(),legend.position="none",plot.margin=unit(c(0.2, 0, 0.2, 0.2), "cm"),axis.text.y=element_text(size=rel(1.5),color="black"),axis.title.y=element_blank())
+p1 + p2 + p3 + plot_layout(widths=c(8,1.5,0.2))
+dev.off()
+
+
+pdf('./02_All_celltype/atac_S_M.pulmonis_ReadsPercentage_FeaturePlot_split_by_sample.pdf', width=12, height=5)
+FeaturePlot(OSN_mm, reduction = 'umap.atac',split.by="orig.ident",keep.scale = "all",features = "atac_S_M.pulmonis_ReadsPercentage")& theme(legend.position = "right")
+dev.off()
+markers <- c("Syt1", #神经元
+              "Omp",# Mature ORNs
+              "Nqo1","Ncam2","Cd36",
+              "Gap43","Gng8",#Immature ORNs
+              "Trp63","Krt14",#HBCs
+              "Sox2","Ermn","Cyp2g1","Cyp1a2",#支持细胞  Sustentacular cells
+              "Sox9","Sox10",#Bowman's gland
+              "Pebp1","Calb2", #球周细胞Periglomerular cells
+              "Ascl3","Cftr",#Microvillar cells
+              "Krt18","Trpm5", #Brush cells
+              "Cd37","Cd79a",#B cells
+              "S100a9","S100a8",#中性粒细胞 Neutrophils
+              "Lyz2","S100a4", #Monocytes
+              "Hbb-bs","Hbb-bt",#红细胞,Erythrocytes
+              "Mcpt8","Ccl4","Ptprc","Itga2", #Basophils
+              "C1qa","Ms4a7"#Macrophages
+)
+DefaultAssay(OSN_mm)<- "ACTIVITY"
+pdf("./02_All_celltype/All_Marker_gene_Activity_Umap.pdf",height=6,width=6)
+for(i in markers){
+  print(i)
+  p1 <- FeaturePlot(OSN_mm,order=TRUE, reduction = 'umap.atac',features =i)
+print(p1)}
+dev.off()
+
+
+
 # cell proportion distribution 
 pdf("./02_All_celltype/OSN_celltypetype_proportion.pdf",width=4,height=5)
 df <- as.data.frame(OSN_mm@meta.data)
@@ -281,6 +354,11 @@ DimPlot(OSN_mm, reduction = "wnn.umap",label=FALSE,cols=newpalette,group.by="ori
 dev.off()
 
 
+## Figure S4B - UMAP split by sample
+newpalette <- c('#E5D2DD', '#53A85F')
+pdf("./02_All_celltype/OSN_split_by_sample_ATACUMAP.pdf",width=12,height=6)
+DimPlot(OSN_mm, reduction = "umap.atac",label=FALSE,cols=newpalette,group.by="orig.ident",split.by="orig.ident",ncol=2)+labs(title="ATAC")+theme(plot.title = element_text(hjust = 0.5,size=rel(1.5),face="bold"))
+dev.off()
 
 
 
